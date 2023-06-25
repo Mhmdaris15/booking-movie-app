@@ -13,6 +13,7 @@ import (
 type MovieRepository interface {
 	GetAllMovies(ctx context.Context) ([]models.Movie, error)
 	GetMovieByID(ctx context.Context, id string) (*models.Movie, error)
+	GetMovieByTitle(ctx context.Context, title string) (*models.Movie, error)
 	CreateMovie(ctx context.Context, movie *models.Movie) error
 	UpdateMovie(ctx context.Context, movie *models.Movie) error
 	DeleteMovie(ctx context.Context, id string) error
@@ -62,6 +63,21 @@ func (r *movieRepository) GetMovieByID(ctx context.Context, id string) (*models.
 
 	var movie models.Movie
 	err = r.collection.FindOne(ctx, filter).Decode(&movie)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("movie not found")
+		}
+		return nil, fmt.Errorf("failed to get movie: %v", err)
+	}
+
+	return &movie, nil
+}
+
+func (r *movieRepository) GetMovieByTitle(ctx context.Context, title string) (*models.Movie, error) {
+	filter := bson.M{"title": title}
+
+	var movie models.Movie
+	err := r.collection.FindOne(ctx, filter).Decode(&movie)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, fmt.Errorf("movie not found")
