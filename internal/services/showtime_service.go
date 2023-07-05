@@ -38,7 +38,7 @@ func (s *showtimeService) CreateShowtime(ctx context.Context, showtime *models.S
 	// Perform any necessary business logic or validation before calling the repository function
 	// For example, check if a showtime with the same ID already exists
 
-	existingShowtime, err := s.showtimeRepo.GetShowtimeByID(ctx, showtime.ID)
+	existingShowtime, err := s.showtimeRepo.GetShowtimeByID(ctx, showtime.ID.Hex())
 	if err != nil {
 		return fmt.Errorf("failed to check existing showtime: %v", err)
 	}

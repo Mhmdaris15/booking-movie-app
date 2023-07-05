@@ -35,7 +35,10 @@ func (s *seatService) GetSeatByID(ctx context.Context, id string) (*models.Seat,
 }
 
 func (s *seatService) CreateSeat(ctx context.Context, seat *models.Seat) error {
-	existingSeat, err := s.seatRepo.GetSeatByID(ctx, seat.ID)
+	// Convert Primitive Object ID to string
+
+	
+	existingSeat, err := s.seatRepo.GetSeatByID(ctx, seat.ID.Hex())
 	if err != nil {
 		return fmt.Errorf("failed to get seat by id: %v", err)
 	}

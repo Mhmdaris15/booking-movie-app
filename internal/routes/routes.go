@@ -5,13 +5,11 @@ import (
 	"github.com/Mhmdaris15/booking-movie-app/internal/repositories"
 	"github.com/Mhmdaris15/booking-movie-app/internal/services"
 	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongo"
+	"github.com/Mhmdaris15/booking-movie-app/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(router *gin.Engine){
-
-	// Connect to MongoDB
-	mongo.ConnectDB()
 
 	// Get Collections
 	userCollection := mongo.GetCollection(mongo.DB, "users")
@@ -85,6 +83,13 @@ func SetupRoutes(router *gin.Engine){
 	router.POST("/showtimes", showtimeHandler.CreateShowtime)
 	router.PUT("/showtimes/:id", showtimeHandler.UpdateShowtime)
 	router.DELETE("/showtimes/:id", showtimeHandler.DeleteShowtime)
+
+	// Authentication
+	router.POST("/register", utils.Signup)
+	router.POST("/login", utils.Login)
+	
+	// Seeding Database
+	router.GET("/seed", handlers.SeedingDatabase)
 
 	// defer db.Close()
 }

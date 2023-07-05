@@ -35,7 +35,7 @@ func (s *ticketService) GetTicketByID(ctx context.Context, id string) (*models.T
 }
 
 func (s *ticketService) CreateTicket(ctx context.Context, ticket *models.Ticket) error {
-	existingTicket, err := s.ticketRepo.GetTicketByID(ctx, ticket.ID)
+	existingTicket, err := s.ticketRepo.GetTicketByID(ctx, ticket.ID.Hex())
 	if err != nil {
 		return fmt.Errorf("failed to get ticket by ID: %v", err)
 	}

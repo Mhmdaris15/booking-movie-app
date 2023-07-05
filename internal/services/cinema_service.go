@@ -35,7 +35,7 @@ func (s *cinemaService) GetCinemaByID(ctx context.Context, id string) (*models.C
 }
 
 func (s *cinemaService) CreateCinema(ctx context.Context, cinema *models.Cinema) error {
-	existingCinema, err := s.cinemaRepo.GetCinemaByID(ctx, cinema.ID)
+	existingCinema, err := s.cinemaRepo.GetCinemaByID(ctx, cinema.ID.Hex())
 	if err != nil {
 		return fmt.Errorf("failed to get cinema by id: %v", err)
 	}

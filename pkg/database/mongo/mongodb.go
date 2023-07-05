@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/Mhmdaris15/booking-movie-app/internal/configs"
+	"github.com/Mhmdaris15/booking-movie-app/internal/models"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -16,7 +18,7 @@ var (
 )
 
 func ConnectDB() *mongo.Client {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(configs.EnvMongoURI()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,10 +73,19 @@ func GetDB(ctx context.Context, dbName string) *mongo.Database {
 	return client.Database(dbName)
 }
 
+func DisconnectDB(client *mongo.Client) {
+	err := client.Disconnect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connection to MongoDB closed.")
+}
+
 func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
 	collection := client.Database("moviedb").Collection(collectionName)
 	return collection
 }
+
 
 func InsertDocument(dbName string, collectionName string, document interface{}) error {
 	collection := client.Database(dbName).Collection(collectionName)
@@ -86,4 +97,12 @@ func InsertDocument(dbName string, collectionName string, document interface{}) 
 	}
 
 	return nil
+}
+
+func SeedingDatabase(client *mongo.Client) ([]models.User, []models.Cinema, []models.Showtime, []models.Seat){
+	users := models.SeedUser(GetCollection(client, "users"))
+	cinemas := models.SeedCinema(GetCollection(client, "cinema"))
+	showtimes := models.SeedShowtime(GetCollection(client, "showtime"), GetCollection(client, "movie"), GetCollection(client, "cinema"))
+	seats := models.SeedSeat(GetCollection(client, "seat"), GetCollection(client, "showtime"))
+	return users, cinemas, showtimes, seats
 }
