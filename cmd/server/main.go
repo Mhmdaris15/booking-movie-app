@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mhmdaris15/booking-movie-app/internal/configs"
 	"github.com/Mhmdaris15/booking-movie-app/internal/routes"
-	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongo"
+	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongodb"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -13,18 +13,18 @@ import (
 func main() {
         
         // Connect to MongoDB
-	mongo.ConnectDB()
+	mongodb.ConnectDB()
 
-        router := gin.Default()
+	router := gin.Default()
 
-        config := cors.DefaultConfig()
+	config := cors.DefaultConfig()
   	config.AllowAllOrigins = true
 
-        router.Use(cors.New(config))
+	router.Use(cors.New(config))
 
-        routes.SetupRoutes(router)
+	routes.SetupRoutes(router)
 
-        if err := router.Run(configs.Port()); err != nil {
-                log.Fatal(err.Error())
-        }
+	if err := router.Run(configs.Port()); err != nil {
+			log.Fatal(err.Error())
+	}
 }
