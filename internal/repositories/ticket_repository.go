@@ -13,6 +13,7 @@ import (
 type TicketRepository interface {
 	GetAllTickets(ctx context.Context) ([]models.Ticket, error)
 	GetTicketByID(ctx context.Context, id string) (*models.Ticket, error)
+	GetAllTicketsByUserID(ctx context.Context, id string) ([]models.Ticket, error)
 	CreateTicket(ctx context.Context, ticket *models.Ticket) error
 	UpdateTicket(ctx context.Context, ticket *models.Ticket) error
 	DeleteTicket(ctx context.Context, id string) error
@@ -64,6 +65,18 @@ func (r *ticketRepository) GetTicketByID(ctx context.Context, id string) (*model
 	}
 
 	return &ticket, nil
+}
+
+func (r *ticketRepository) GetAllTicketsByUserID(ctx context.Context, id string) ([]models.Ticket, error) {
+	var tickets []models.Ticket
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ticket ID: %v", err)
+	}
+
+	
+
 }
 
 func (r *ticketRepository) CreateTicket(ctx context.Context, ticket *models.Ticket) error {

@@ -4,7 +4,7 @@ import (
 	"github.com/Mhmdaris15/booking-movie-app/internal/handlers"
 	"github.com/Mhmdaris15/booking-movie-app/internal/repositories"
 	"github.com/Mhmdaris15/booking-movie-app/internal/services"
-	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongo"
+	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongodb"
 	"github.com/Mhmdaris15/booking-movie-app/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -12,12 +12,12 @@ import (
 func SetupRoutes(router *gin.Engine){
 
 	// Get Collections
-	userCollection := mongo.GetCollection(mongo.DB, "users")
-	movieCollection := mongo.GetCollection(mongo.DB, "movie")
-	ticketCollection := mongo.GetCollection(mongo.DB, "ticket")
-	cinemaCollection := mongo.GetCollection(mongo.DB, "cinema")
-	seatCollection := mongo.GetCollection(mongo.DB, "seat")
-	showtimeCollection := mongo.GetCollection(mongo.DB, "showtime")
+	userCollection := mongodb.GetCollection(mongodb.DB, "users")
+	movieCollection := mongodb.GetCollection(mongodb.DB, "movie")
+	ticketCollection := mongodb.GetCollection(mongodb.DB, "ticket")
+	cinemaCollection := mongodb.GetCollection(mongodb.DB, "cinema")
+	seatCollection := mongodb.GetCollection(mongodb.DB, "seat")
+	showtimeCollection := mongodb.GetCollection(mongodb.DB, "showtime")
 
 	
 	// Setup Repositories
@@ -38,6 +38,7 @@ func SetupRoutes(router *gin.Engine){
 
 	// Setup routes
 
+
 	// User routes
 	router.GET("/users", userHandler.GetAllUsers)
 	// router.GET("/users/:id", userHandler.GetUserByID)
@@ -46,48 +47,81 @@ func SetupRoutes(router *gin.Engine){
 	router.GET("/users/:username", userHandler.GetUserByUsername)
 	router.POST("/users", userHandler.CreateUser)
 	// router.PUT("/users/:id", userHandler.UpdateUser)
-	router.PUT("/users/:username", userHandler.UpdateUserByUsername)
-	router.DELETE("/users/:id", userHandler.DeleteUser)
+	userGroup := router.Group("/users")
+	userGroup.Use(utils.AuthMiddleware())
+	{
+		userGroup.PUT("/users/:username", userHandler.UpdateUserByUsername)
+		userGroup.DELETE("/users/:id", userHandler.DeleteUser)
+	}
 
 	// Movie routes
 	router.GET("/movies", movieHandler.GetAllMovies)
 	router.GET("/movies/:id", movieHandler.GetMovieByID)
-	router.POST("/movies", movieHandler.CreateMovie)
-	router.PUT("/movies/:id", movieHandler.UpdateMovie)
-	router.DELETE("/movies/:id", movieHandler.DeleteMovie)
+	
+	movieGroup := router.Group("/movies")
+	movieGroup.Use(utils.AuthMiddleware())
+	{
+		movieGroup.POST("/movies", movieHandler.CreateMovie)
+		movieGroup.PUT("/movies/:id", movieHandler.UpdateMovie)
+		movieGroup.DELETE("/movies/:id", movieHandler.DeleteMovie)
+	}
 
 	// Ticket routes
-	router.GET("/tickets", ticketHandler.GetAllTickets)
-	router.GET("/tickets/:id", ticketHandler.GetTicketByID)
-	router.POST("/tickets", ticketHandler.CreateTicket)
-	router.PUT("/tickets/:id", ticketHandler.UpdateTicket)
-	router.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
+
+	ticketGroup := router.Group("/tickets")
+	ticketGroup.Use(utils.AuthMiddleware())
+	{
+		ticketGroup.GET("/user/:id", ticketHandler.GetAllTicketsByUserID)
+		ticketGroup.GET("/:id", ticketHandler.GetTicketByID)
+		ticketGroup.GET("/", ticketHandler.GetAllTickets)
+		ticketGroup.POST("/", ticketHandler.CreateTicket)
+		ticketGroup.PUT("/:id", ticketHandler.UpdateTicket)
+		ticketGroup.DELETE("/:id", ticketHandler.DeleteTicket)
+	}
+
 	
 	// Cinema routes
 	router.GET("/cinemas", cinemaHandler.GetAllCinemas)
 	router.GET("/cinemas/:id", cinemaHandler.GetCinemaByID)
-	router.POST("/cinemas", cinemaHandler.CreateCinema)
-	router.PUT("/cinemas/:id", cinemaHandler.UpdateCinema)
-	router.DELETE("/cinemas/:id", cinemaHandler.DeleteCinema)
+
+	cinemaGroup := router.Group("/cinemas")
+	cinemaGroup.Use(utils.AuthMiddleware())
+	{
+		cinemaGroup.POST("/", cinemaHandler.CreateCinema)
+		cinemaGroup.PUT("/:id", cinemaHandler.UpdateCinema)
+		cinemaGroup.DELETE("/:id", cinemaHandler.DeleteCinema)
+	}
 
 	// Seat routes
 	router.GET("/seats", seatHandler.GetAllSeats)
-	router.GET("/seats/:id", seatHandler.GetSeatByID)
-	router.POST("/seats", seatHandler.CreateSeat)
-	router.PUT("/seats/:id", seatHandler.UpdateSeat)
-	router.DELETE("/seats/:id", seatHandler.DeleteSeat)
+
+	seatGroup := router.Group("/seats")
+	seatGroup.Use(utils.AuthMiddleware())
+	{
+		seatGroup.GET("/seats/:id", seatHandler.GetSeatByID)
+		seatGroup.POST("/seats", seatHandler.CreateSeat)
+		seatGroup.PUT("/seats/:id", seatHandler.UpdateSeat)
+		seatGroup.DELETE("/seats/:id", seatHandler.DeleteSeat)
+	}
 
 	// Showtime routes
 	router.GET("/showtimes", showtimeHandler.GetAllShowtimes)
 	router.GET("/showtimes/:id", showtimeHandler.GetShowtimeByID)
-	router.POST("/showtimes", showtimeHandler.CreateShowtime)
-	router.PUT("/showtimes/:id", showtimeHandler.UpdateShowtime)
-	router.DELETE("/showtimes/:id", showtimeHandler.DeleteShowtime)
+	
+	showtimeGroup := router.Group("/showtimes")
+	showtimeGroup.Use(utils.AuthMiddleware())
+	{
+		showtimeGroup.POST("/showtimes", showtimeHandler.CreateShowtime)
+		showtimeGroup.PUT("/showtimes/:id", showtimeHandler.UpdateShowtime)
+		showtimeGroup.DELETE("/showtimes/:id", showtimeHandler.DeleteShowtime)
+	}
 
 	// Authentication
 	router.POST("/register", utils.Signup)
 	router.POST("/login", utils.Login)
-	
+
+
+	router.GET("/protected", utils.AuthMiddleware(), utils.ProtectedHandler)
 	// Seeding Database
 	router.GET("/seed", handlers.SeedingDatabase)
 

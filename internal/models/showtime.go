@@ -19,7 +19,7 @@ type Showtime struct {
 	EndTime   string
 }
 
-func SeedShowtime(showtimeCollection *mongo.Collection, movieCollection *mongo.Collection ,cinemaCollection *mongo.Collection) ([]Showtime) {
+func SeedShowtime(showtimeCollection *mongo.Collection, movieCollection *mongo.Collection ,cinemaCollection *mongo.Collection, seatCollection *mongo.Collection) ([]Showtime) {
 	var showtimes []Showtime
 	showtimeCount := 5
 
@@ -62,17 +62,36 @@ func SeedShowtime(showtimeCollection *mongo.Collection, movieCollection *mongo.C
 		// Get Random Cinema ID
 		randomCinemaID := cinemaIDs[rand.Intn(len(cinemaIDs))]
 
+		showtimeID := primitive.NewObjectID()
+
 		showtime := Showtime{
-			ID: 	 primitive.NewObjectID(),
+			ID: 	 showtimeID,
 			MovieID: randomMovieID,
 			CinemaID: randomCinemaID,
 			StartTime: faker.TimeString(),
 			EndTime: faker.TimeString(),
 		}
-		showtimes = append(showtimes, showtime)
+		showtimes = append(showtimes, showtime)	
 
-		_, err := showtimeCollection.InsertOne(context.Background(), showtime)
-		if err != nil {
+		var seats []interface{}
+
+		for i := 1; i < 65; i++ {
+			seat := Seat{
+				ID: 		primitive.NewObjectID(),
+				ShowtimeID: showtimeID,
+				SeatNumber: i,
+				IsAvailable: true,
+			}
+			seats = append(seats, seat)
+
+		}
+
+		if _, err := seatCollection.InsertMany(context.Background(), seats); err != nil {
+			log.Fatal(err)
+		}
+
+
+		if _, err := showtimeCollection.InsertOne(context.Background(), showtime); err != nil {
 			log.Fatal(err)
 		}
 	}

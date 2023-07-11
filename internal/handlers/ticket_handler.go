@@ -10,10 +10,12 @@ import (
 
 type TicketHandler interface {
 	GetAllTickets(ctx *gin.Context)
+	GetAllTicketsByUserID(ctx *gin.Context)
 	GetTicketByID(ctx *gin.Context)
 	CreateTicket(ctx *gin.Context)
 	UpdateTicket(ctx *gin.Context)
 	DeleteTicket(ctx *gin.Context)
+
 }
 
 type ticketHandler struct {
@@ -42,7 +44,19 @@ func (h *ticketHandler) GetTicketByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, ticket)
+}
+
+func (h *ticketHandler) GetAllTicketsByUserID(ctx *gin.Context) {
+	id := ctx.Param("id")
+	tickets, err := h.ticketService.GetAllTicketsByUserID(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, tickets)
 }
 
 func (h *ticketHandler) CreateTicket(ctx *gin.Context) {
@@ -55,6 +69,7 @@ func (h *ticketHandler) CreateTicket(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(http.StatusCreated, ticket)
 }
 
@@ -81,3 +96,4 @@ func (h *ticketHandler) DeleteTicket(ctx *gin.Context) {
 }
 
 // Path: internal\handlers\cinema_handler.go
+

@@ -1,4 +1,4 @@
-package mongo
+package mongodb
 
 import (
 	"context"
@@ -102,7 +102,8 @@ func InsertDocument(dbName string, collectionName string, document interface{}) 
 func SeedingDatabase(client *mongo.Client) ([]models.User, []models.Cinema, []models.Showtime, []models.Seat){
 	users := models.SeedUser(GetCollection(client, "users"))
 	cinemas := models.SeedCinema(GetCollection(client, "cinema"))
-	showtimes := models.SeedShowtime(GetCollection(client, "showtime"), GetCollection(client, "movie"), GetCollection(client, "cinema"))
-	seats := models.SeedSeat(GetCollection(client, "seat"), GetCollection(client, "showtime"))
+	showtimes := models.SeedShowtime(GetCollection(client, "showtime"), GetCollection(client, "movie"), GetCollection(client, "cinema"), GetCollection(client, "seat"))
+	// seats := models.SeedSeat(GetCollection(client, "seat"), GetCollection(client, "showtime"))
+	seats := []models.Seat{}
 	return users, cinemas, showtimes, seats
 }

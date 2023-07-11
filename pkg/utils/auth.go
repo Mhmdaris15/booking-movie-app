@@ -6,49 +6,63 @@ import (
 
 	"github.com/Mhmdaris15/booking-movie-app/internal/configs"
 	"github.com/Mhmdaris15/booking-movie-app/internal/models"
-	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongo"
+	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongodb"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	tokenExpiration = 2 * time.Hour
+)
+
+type JWTClaims struct {
+	UserID string `json:"user_id"`
+	Email string `json:"email"`
+	// Role string `json:"role"`
+	jwt.StandardClaims
+}
+
 func Signup(c *gin.Context) {
-	// Get The Email and Password
+	// Get the Email and Password
 
 	var user models.User
 
-	if c.BindJSON(&user) != nil {
+	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid Body"})
 		return
 	}
 
-	// Hash The Password
+	// Hash the Password
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
 		return
 	}
 
-	db := mongo.ConnectDB()
+	db := mongodb.ConnectDB()
 
-	collection := mongo.GetCollection(db, "users")
+	collection := mongodb.GetCollection(db, "users")
 
-	userFound := collection.FindOne(c, gin.H{
-		"email": user.Email,
-	})
-
-	if userFound != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Email Already Exist"})
+	// Check if user with the same email already exists
+	err = collection.FindOne(c, bson.M{"email": user.Email}).Err()
+	if err != nil && err != mongo.ErrNoDocuments {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		return
+	} else if err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Email Already Exists"})
 		return
 	}
 
-	result, err := collection.InsertOne(c, gin.H{
+	result, err := collection.InsertOne(c, bson.M{
 		"username": user.Username,
-		"name": user.Name,
+		"name":     user.Name,
 		"email":    user.Email,
 		"password": string(bcryptPassword),
-		"age": user.Age,
-		"balance": 0,
+		"age":      user.Age,
+		"balance":  0,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
@@ -57,6 +71,8 @@ func Signup(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "data": result})
 }
+
+
 
 func Login(c *gin.Context) {
 	// Get The Email and Password
@@ -66,40 +82,58 @@ func Login(c *gin.Context) {
 		Password string `json:"password" validate:"required"`
 	}
 
-	if c.BindJSON(&body) != nil {
+	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid Body"})
 		return
 	}
 
-	db := mongo.ConnectDB()
+	db := mongodb.ConnectDB()
 
 	var result models.User
 
-	err := mongo.GetCollection(db, "users").FindOne(c, gin.H{
-		"email": body.Email,
-	}).Decode(&result)
-	if err != nil {
+	collection := mongodb.GetCollection(db, "users")
+	if collection == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		return
+	}
+
+	err := collection.FindOne(c, bson.M{"email": body.Email}).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Email or Password"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		}
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(body.Password))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Email or Password"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Success", "data": result})
+	token, err := GenerateJWT(result)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Success", "data": result, "token": token})
 }
 
-func GenerateJWT() (string, error){
-	token := jwt.New(jwt.SigningMethodEdDSA)
+func GenerateJWT(user models.User) (string, error) {
+	claims := JWTClaims{
+		user.ID.Hex(),
+		user.Email,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(tokenExpiration).Unix(),
+		},
+	}
 
-	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(time.Minute * 30)
-	claims["authorized"] = true
-	claims["user"] = "username"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
+	// Sign the token with the secret key
 	tokenString, err := token.SignedString([]byte(configs.SecretKey()))
 	if err != nil {
 		return "", err
@@ -108,31 +142,52 @@ func GenerateJWT() (string, error){
 	return tokenString, nil
 }
 
-func verifyJWT(endpointHandler func(c *gin.Context)) gin.HandlerFunc {
+func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.Request.Header.Get("Token")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		// Get the authorization header
+		authHeader := c.GetHeader("Authorization")
+
+		// Check if the authorization header is present
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Authorization Header Required"})
 			c.Abort()
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Extract the token from the authorization header
+		tokenString := authHeader[len("Bearer "):] // Remove the Bearer prefix
+
+		// Parse the JWT token
+		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 			return []byte(configs.SecretKey()), nil
 		})
+
+		// Check if there was an error in parsing JWT
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"message": `Invalid Token | when parsing JWT`, "error": err.Error()})
 			c.Abort()
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			c.Set("user", claims["user"])
-			endpointHandler(c)
+		// Verify the token claims
+		if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+			c.Set("user_id", claims.UserID)
+			c.Set("email", claims.Email)
+			// c.Set("role", claims.Role)
+			c.Next()
 		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Token | in claiming Token", "error": err.Error()})
 			c.Abort()
 			return
 		}
 	}
+}
+
+func ProtectedHandler(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	email, _ := c.Get("email")
+	// role, _ := c.Get("role")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Protected Route", "user_id": userID, "email": email})
+
 }

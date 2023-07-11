@@ -11,6 +11,7 @@ import (
 type TicketService interface {
 	GetAllTickets(ctx context.Context) ([]models.Ticket, error)
 	GetTicketByID(ctx context.Context, id string) (*models.Ticket, error)
+	GetAllTicketsByUserID(ctx context.Context, id string) ([]models.Ticket, error)
 	CreateTicket(ctx context.Context, ticket *models.Ticket) error
 	UpdateTicket(ctx context.Context, ticket *models.Ticket) error
 	DeleteTicket(ctx context.Context, id string) error
@@ -31,13 +32,18 @@ func (s *ticketService) GetAllTickets(ctx context.Context) ([]models.Ticket, err
 }
 
 func (s *ticketService) GetTicketByID(ctx context.Context, id string) (*models.Ticket, error) {
+
 	return s.ticketRepo.GetTicketByID(ctx, id)
+}
+
+func (s *ticketService) GetAllTicketsByUserID(ctx context.Context, id string) ([]models.Ticket, error) {
+	return s.ticketRepo.GetAllTicketsByUserID(ctx, id)
 }
 
 func (s *ticketService) CreateTicket(ctx context.Context, ticket *models.Ticket) error {
 	existingTicket, err := s.ticketRepo.GetTicketByID(ctx, ticket.ID.Hex())
 	if err != nil {
-		return fmt.Errorf("failed to get ticket by ID: %v", err)
+		fmt.Printf("failed to get ticket by ID: %v", err)
 	}
 	if existingTicket != nil {
 		return fmt.Errorf("ticket already exists")
