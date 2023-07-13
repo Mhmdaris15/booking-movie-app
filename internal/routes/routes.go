@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(router *gin.Engine){
+func SetupRoutes(router *gin.Engine) {
 
 	// Get Collections
 	userCollection := mongodb.GetCollection(mongodb.DB, "users")
@@ -19,7 +19,6 @@ func SetupRoutes(router *gin.Engine){
 	seatCollection := mongodb.GetCollection(mongodb.DB, "seat")
 	showtimeCollection := mongodb.GetCollection(mongodb.DB, "showtime")
 
-	
 	// Setup Repositories
 	userRepository := repositories.NewUserRepository(userCollection)
 	movieRepository := repositories.NewMovieRepository(movieCollection)
@@ -37,7 +36,6 @@ func SetupRoutes(router *gin.Engine){
 	showtimeHandler := handlers.NewShowtimeHandler(services.NewShowtimeService(showtimeRepository))
 
 	// Setup routes
-
 
 	// User routes
 	router.GET("/users", userHandler.GetAllUsers)
@@ -57,13 +55,14 @@ func SetupRoutes(router *gin.Engine){
 	// Movie routes
 	router.GET("/movies", movieHandler.GetAllMovies)
 	router.GET("/movies/:id", movieHandler.GetMovieByID)
-	
+	router.POST("/movies", utils.AuthMiddleware(), movieHandler.CreateMovie)
+
 	movieGroup := router.Group("/movies")
 	movieGroup.Use(utils.AuthMiddleware())
 	{
-		movieGroup.POST("/movies", movieHandler.CreateMovie)
-		movieGroup.PUT("/movies/:id", movieHandler.UpdateMovie)
-		movieGroup.DELETE("/movies/:id", movieHandler.DeleteMovie)
+		// movieGroup.POST("/", movieHandler.CreateMovie)
+		movieGroup.PUT("/:id", movieHandler.UpdateMovie)
+		movieGroup.DELETE("/:id", movieHandler.DeleteMovie)
 	}
 
 	// Ticket routes
@@ -71,7 +70,7 @@ func SetupRoutes(router *gin.Engine){
 	ticketGroup := router.Group("/tickets")
 	ticketGroup.Use(utils.AuthMiddleware())
 	{
-		ticketGroup.GET("/user/:id", ticketHandler.GetAllTicketsByUserID)
+		ticketGroup.GET("/user/:id", ticketHandler.GetAllTicketsByUsername)
 		ticketGroup.GET("/:id", ticketHandler.GetTicketByID)
 		ticketGroup.GET("/", ticketHandler.GetAllTickets)
 		ticketGroup.POST("/", ticketHandler.CreateTicket)
@@ -79,7 +78,6 @@ func SetupRoutes(router *gin.Engine){
 		ticketGroup.DELETE("/:id", ticketHandler.DeleteTicket)
 	}
 
-	
 	// Cinema routes
 	router.GET("/cinemas", cinemaHandler.GetAllCinemas)
 	router.GET("/cinemas/:id", cinemaHandler.GetCinemaByID)
@@ -98,28 +96,27 @@ func SetupRoutes(router *gin.Engine){
 	seatGroup := router.Group("/seats")
 	seatGroup.Use(utils.AuthMiddleware())
 	{
-		seatGroup.GET("/seats/:id", seatHandler.GetSeatByID)
-		seatGroup.POST("/seats", seatHandler.CreateSeat)
-		seatGroup.PUT("/seats/:id", seatHandler.UpdateSeat)
-		seatGroup.DELETE("/seats/:id", seatHandler.DeleteSeat)
+		seatGroup.GET("/:id", seatHandler.GetSeatByID)
+		seatGroup.POST("/", seatHandler.CreateSeat)
+		seatGroup.PUT("/:id", seatHandler.UpdateSeat)
+		seatGroup.DELETE("/:id", seatHandler.DeleteSeat)
 	}
 
 	// Showtime routes
 	router.GET("/showtimes", showtimeHandler.GetAllShowtimes)
 	router.GET("/showtimes/:id", showtimeHandler.GetShowtimeByID)
-	
+
 	showtimeGroup := router.Group("/showtimes")
 	showtimeGroup.Use(utils.AuthMiddleware())
 	{
-		showtimeGroup.POST("/showtimes", showtimeHandler.CreateShowtime)
-		showtimeGroup.PUT("/showtimes/:id", showtimeHandler.UpdateShowtime)
-		showtimeGroup.DELETE("/showtimes/:id", showtimeHandler.DeleteShowtime)
+		showtimeGroup.POST("/", showtimeHandler.CreateShowtime)
+		showtimeGroup.PUT("/:id", showtimeHandler.UpdateShowtime)
+		showtimeGroup.DELETE("/:id", showtimeHandler.DeleteShowtime)
 	}
 
 	// Authentication
 	router.POST("/register", utils.Signup)
 	router.POST("/login", utils.Login)
-
 
 	router.GET("/protected", utils.AuthMiddleware(), utils.ProtectedHandler)
 	// Seeding Database
@@ -127,4 +124,3 @@ func SetupRoutes(router *gin.Engine){
 
 	// defer db.Close()
 }
-

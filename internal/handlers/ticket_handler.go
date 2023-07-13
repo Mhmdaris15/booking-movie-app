@@ -11,11 +11,11 @@ import (
 type TicketHandler interface {
 	GetAllTickets(ctx *gin.Context)
 	GetAllTicketsByUserID(ctx *gin.Context)
+	GetAllTicketsByUsername(ctx *gin.Context)
 	GetTicketByID(ctx *gin.Context)
 	CreateTicket(ctx *gin.Context)
 	UpdateTicket(ctx *gin.Context)
 	DeleteTicket(ctx *gin.Context)
-
 }
 
 type ticketHandler struct {
@@ -59,18 +59,31 @@ func (h *ticketHandler) GetAllTicketsByUserID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, tickets)
 }
 
+func (h *ticketHandler) GetAllTicketsByUsername(ctx *gin.Context) {
+	username := ctx.Param("id")
+	tickets, err := h.ticketService.GetAllTicketsByUsername(ctx, username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, tickets)
+}
+
 func (h *ticketHandler) CreateTicket(ctx *gin.Context) {
 	var ticket *models.Ticket
 	if err := ctx.ShouldBindJSON(&ticket); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.ticketService.CreateTicket(ctx, ticket); err != nil {
+
+	newTicket, err := h.ticketService.CreateTicket(ctx, ticket)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, ticket)
+	ctx.JSON(http.StatusCreated, newTicket)
 }
 
 func (h *ticketHandler) UpdateTicket(ctx *gin.Context) {
@@ -96,4 +109,3 @@ func (h *ticketHandler) DeleteTicket(ctx *gin.Context) {
 }
 
 // Path: internal\handlers\cinema_handler.go
-

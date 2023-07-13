@@ -13,6 +13,7 @@ import (
 	"github.com/Mhmdaris15/booking-movie-app/internal/services"
 	"github.com/gin-gonic/gin"
 )
+
 type MovieHandler interface {
 	GetAllMovies(ctx *gin.Context)
 	GetMovieByID(ctx *gin.Context)
@@ -61,7 +62,6 @@ func (h *movieHandler) GetAllMovies(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, responses)
 }
 
-
 func (h *movieHandler) GetMovieByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	movie, err := h.movieService.GetMovieByID(ctx, id)
@@ -75,19 +75,18 @@ func (h *movieHandler) GetMovieByID(ctx *gin.Context) {
 	imageBytes, err := ioutil.ReadFile(movie.PosterURL)
 	if err != nil {
 		res = response.Response{
-			Data: *movie,
+			Data:  *movie,
 			Image: "",
 		}
 	} else {
 		res = response.Response{
-			Data: *movie,
+			Data:  *movie,
 			Image: base64.StdEncoding.EncodeToString(imageBytes),
 		}
 	}
 
 	ctx.Header("Content-Type", "application/json")
 	ctx.Header("Content-Disposition", "attachment; filename=movie.json")
-
 
 	ctx.JSON(http.StatusOK, res)
 }
@@ -135,8 +134,8 @@ func (h *movieHandler) CreateMovie(ctx *gin.Context) {
 		return
 	}
 
-	// Remove file_image request 
-	
+	// Remove file_image request
+
 	if err = ctx.Request.MultipartForm.RemoveAll(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

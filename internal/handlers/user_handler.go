@@ -79,7 +79,6 @@ func (h *userHandler) CreateUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
 
 	ctx.JSON(http.StatusCreated, user)
 }

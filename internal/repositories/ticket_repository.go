@@ -14,7 +14,8 @@ type TicketRepository interface {
 	GetAllTickets(ctx context.Context) ([]models.Ticket, error)
 	GetTicketByID(ctx context.Context, id string) (*models.Ticket, error)
 	GetAllTicketsByUserID(ctx context.Context, id string) ([]models.Ticket, error)
-	CreateTicket(ctx context.Context, ticket *models.Ticket) error
+	GetAllTicketsByUsername(ctx context.Context, username string) ([]models.Ticket, error)
+	CreateTicket(ctx context.Context, ticket *models.Ticket) (models.Ticket, error)
 	UpdateTicket(ctx context.Context, ticket *models.Ticket) error
 	DeleteTicket(ctx context.Context, id string) error
 }
@@ -75,17 +76,68 @@ func (r *ticketRepository) GetAllTicketsByUserID(ctx context.Context, id string)
 		return nil, fmt.Errorf("invalid ticket ID: %v", err)
 	}
 
-	
+	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objectID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve tickets: %v", err)
+	}
+
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var ticket models.Ticket
+		if err := cursor.Decode(&ticket); err != nil {
+			return nil, fmt.Errorf("failed to decode ticket: %v", err)
+		}
+		tickets = append(tickets, ticket)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %v", err)
+	}
+
+	return tickets, nil
 
 }
 
-func (r *ticketRepository) CreateTicket(ctx context.Context, ticket *models.Ticket) error {
-	_, err := r.collection.InsertOne(ctx, ticket)
-	if err != nil {
-		return fmt.Errorf("failed to create ticket: %v", err)
+func (r *ticketRepository) GetAllTicketsByUsername(ctx context.Context, username string) ([]models.Ticket, error) {
+	var tickets []models.Ticket
+
+	userCollection := r.collection.Database().Collection("users")
+	var user models.User
+	if err := userCollection.FindOne(ctx, bson.M{"username": username}).Decode(&user); err != nil {
+		return nil, fmt.Errorf("failed to retrieve user: %v", err)
 	}
 
-	return nil
+	cursor, err := r.collection.Find(ctx, bson.M{"user_id": user.ID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve tickets: %v", err)
+	}
+
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var ticket models.Ticket
+		if err := cursor.Decode(&ticket); err != nil {
+			return nil, fmt.Errorf("failed to decode ticket: %v", err)
+		}
+		tickets = append(tickets, ticket)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %v", err)
+	}
+
+	return tickets, nil
+}
+
+func (r *ticketRepository) CreateTicket(ctx context.Context, ticket *models.Ticket) (models.Ticket, error) {
+	ticket.ID = primitive.NewObjectID()
+	_, err := r.collection.InsertOne(ctx, ticket)
+	if err != nil {
+		return models.Ticket{}, fmt.Errorf("failed to create ticket: %v", err)
+	}
+
+	return *ticket, nil
 }
 
 func (r *ticketRepository) UpdateTicket(ctx context.Context, ticket *models.Ticket) error {
