@@ -18,29 +18,31 @@ var (
 )
 
 func ConnectDB() *mongo.Client {
-	client, err := mongo.NewClient(options.Client().ApplyURI(configs.EnvMongoURI()))
+	clientNew, err := mongo.NewClient(options.Client().ApplyURI(configs.EnvMongoURI()))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	err = client.Connect(ctx)
+	err = clientNew.Connect(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Ping the MongoDB server to verify the connection
-	err = client.Ping(ctx, nil)
+	err = clientNew.Ping(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to MongoDB!")
-	return client
+
+	client = clientNew
+
+	return clientNew
 }
 
 var DB *mongo.Client = ConnectDB()
-
 
 func Connect(connectionString, dbName string) error {
 	var err error
@@ -86,7 +88,6 @@ func GetCollection(client *mongo.Client, collectionName string) *mongo.Collectio
 	return collection
 }
 
-
 func InsertDocument(dbName string, collectionName string, document interface{}) error {
 	collection := client.Database(dbName).Collection(collectionName)
 
@@ -99,7 +100,7 @@ func InsertDocument(dbName string, collectionName string, document interface{}) 
 	return nil
 }
 
-func SeedingDatabase(client *mongo.Client) ([]models.User, []models.Cinema, []models.Showtime, []models.Seat){
+func SeedingDatabase(client *mongo.Client) ([]models.User, []models.Cinema, []models.Showtime, []models.Seat) {
 	users := models.SeedUser(GetCollection(client, "users"))
 	cinemas := models.SeedCinema(GetCollection(client, "cinema"))
 	showtimes := models.SeedShowtime(GetCollection(client, "showtime"), GetCollection(client, "movie"), GetCollection(client, "cinema"), GetCollection(client, "seat"))

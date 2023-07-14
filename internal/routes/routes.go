@@ -48,8 +48,8 @@ func SetupRoutes(router *gin.Engine) {
 	userGroup := router.Group("/users")
 	userGroup.Use(utils.AuthMiddleware())
 	{
-		userGroup.PUT("/users/:username", userHandler.UpdateUserByUsername)
-		userGroup.DELETE("/users/:id", userHandler.DeleteUser)
+		userGroup.PUT("/:username", userHandler.UpdateUserByUsername)
+		userGroup.DELETE("/:id", userHandler.DeleteUser)
 	}
 
 	// Movie routes
@@ -105,11 +105,11 @@ func SetupRoutes(router *gin.Engine) {
 	// Showtime routes
 	router.GET("/showtimes", showtimeHandler.GetAllShowtimes)
 	router.GET("/showtimes/:id", showtimeHandler.GetShowtimeByID)
+	router.POST("/showtimes", utils.AuthMiddleware(), showtimeHandler.CreateShowtime)
 
 	showtimeGroup := router.Group("/showtimes")
 	showtimeGroup.Use(utils.AuthMiddleware())
 	{
-		showtimeGroup.POST("/", showtimeHandler.CreateShowtime)
 		showtimeGroup.PUT("/:id", showtimeHandler.UpdateShowtime)
 		showtimeGroup.DELETE("/:id", showtimeHandler.DeleteShowtime)
 	}

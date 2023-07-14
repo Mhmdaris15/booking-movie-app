@@ -6,6 +6,7 @@ import (
 	"github.com/Mhmdaris15/booking-movie-app/internal/models"
 	"github.com/Mhmdaris15/booking-movie-app/internal/services"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ShowtimeHandler interface {
@@ -51,6 +52,7 @@ func (h *showtimeHandler) CreateShowtime(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	showtime.ID = primitive.NewObjectID()
 	if err := h.showtimeService.CreateShowtime(ctx, showtime); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Mhmdaris15/booking-movie-app/internal/models"
+	"github.com/Mhmdaris15/booking-movie-app/pkg/database/mongodb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -70,6 +71,30 @@ func (r *showtimeRepository) CreateShowtime(ctx context.Context, showtime *model
 	_, err := r.collection.InsertOne(ctx, showtime)
 	if err != nil {
 		return fmt.Errorf("failed to insert showtime: %v", err)
+	}
+
+	// Create 64 Seats as well
+	var seats []models.Seat
+	for i := 1; i <= 64; i++ {
+		seats = append(seats, models.Seat{
+			ID:          primitive.NewObjectID(),
+			ShowtimeID:  showtime.ID,
+			SeatNumber:  i,
+			IsAvailable: true,
+		})
+	}
+
+	seatCollection := mongodb.GetCollection(mongodb.DB, "seat")
+
+	// Convert seats slice to []interface{}
+	var seatInterfaces []interface{}
+	for _, seat := range seats {
+		seatInterfaces = append(seatInterfaces, seat)
+	}
+
+	_, err = seatCollection.InsertMany(ctx, seatInterfaces)
+	if err != nil {
+		return fmt.Errorf("failed to insert seats: %v", err)
 	}
 
 	return nil
