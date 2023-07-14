@@ -18,28 +18,22 @@ var (
 )
 
 func ConnectDB() *mongo.Client {
-	clientNew, err := mongo.NewClient(options.Client().ApplyURI(configs.EnvMongoURI()))
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI(configs.EnvMongoURI()).SetServerAPIOptions(serverAPI)
+
+	client, err := mongo.Connect(context.TODO(), opts)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = clientNew.Connect(ctx)
+	err = client.Ping(context.TODO(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Ping the MongoDB server to verify the connection
-	err = clientNew.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
 	fmt.Println("Connected to MongoDB!")
 
-	client = clientNew
-
-	return clientNew
+	return client
 }
 
 var DB *mongo.Client = ConnectDB()
