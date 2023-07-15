@@ -67,13 +67,13 @@ func SetupRoutes(router *gin.Engine) {
 
 	// Ticket routes
 
+	router.POST("/tickets", utils.AuthMiddleware(), ticketHandler.CreateTicket)
 	ticketGroup := router.Group("/tickets")
 	ticketGroup.Use(utils.AuthMiddleware())
 	{
 		ticketGroup.GET("/user/:id", ticketHandler.GetAllTicketsByUsername)
 		ticketGroup.GET("/:id", ticketHandler.GetTicketByID)
 		ticketGroup.GET("/", ticketHandler.GetAllTickets)
-		ticketGroup.POST("/", ticketHandler.CreateTicket)
 		ticketGroup.PUT("/:id", ticketHandler.UpdateTicket)
 		ticketGroup.DELETE("/:id", ticketHandler.DeleteTicket)
 	}
